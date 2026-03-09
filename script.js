@@ -1,98 +1,78 @@
-const API_KEY = '8ffcf7f3'; 
+const API_KEY = '8ffcf7f3'; // <--- PUT YOUR KEY HERE
 
-let movieData = [];
-let linkData = [];
+let movieData = []; // This stores the CSV data so we don't have to reload it
 
-// --- ROBUST DATA ENGINE ---
+// --- 1. INITIALIZE DATA (Loads once when page opens) ---
 async function initMatrix() {
     try {
-        const [mRes, lRes] = await Promise.all([
-            fetch('movies.csv').then(r => r.text()),
-            fetch('links.csv').then(r => r.text())
-        ]);
-
-        movieData = parseCleanCSV(mRes).slice(1); // Remove header
-        linkData = parseCleanCSV(lRes);
+        const response = await fetch('movies.csv');
+        const text = await response.text();
+        // Splits by line and cleans up hidden carriage returns (\r)
+        const rows = text.split(/\r?\n/).filter(row => row.trim() !== "");
         
-        console.log("Matrix Online. Movies Loaded:", movieData.length);
+        // Parse CSV columns correctly (handles titles with commas like "Toy Story, The")
+        movieData = rows.slice(1).map(row => {
+            return row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => cell.replace(/"/g, '').trim());
+        });
+
+        console.log("Matrix Data Loaded:", movieData.length, "movies");
+        
+        // If we are on the dashboard, show Action movies by default
+        if (document.getElementById('movieGrid')) {
+            renderDashboard('Action');
+        }
     } catch (e) {
-        console.error("Matrix Sync Failed:", e);
+        console.error("Matrix Sync Error:", e);
     }
 }
 
-// Cleans data of hidden characters (\r, extra spaces, etc.)
-function parseCleanCSV(text) {
-    if (!text) return [];
-    return text.split(/\r?\n/) // Handles both Windows and Linux line breaks
-               .filter(row => row.trim() !== '')
-               .map(row => row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => cell.replace(/"/g, '').trim()));
-}
-
-// --- DASHBOARD RENDERER ---
+// --- 2. DASHBOARD RENDERER (Uses the cached movieData) ---
 async function renderDashboard(genre = 'Action') {
     const grid = document.getElementById('movieGrid');
     const titleHeader = document.getElementById('recommendationTitle');
     if (!grid) return;
 
-    // Update Pill UI
+    // Update Pill UI (Active state)
     document.querySelectorAll('.genre-pill').forEach(btn => {
         btn.classList.remove('active');
-        if (btn.innerText.toLowerCase() === genre.toLowerCase()) btn.classList.add('active');
+        if (btn.innerText.trim().toLowerCase() === genre.toLowerCase()) btn.classList.add('active');
     });
 
-    titleHeader.innerHTML = `Recommended <span class="neon-text">${genre}</span>`;
-    grid.innerHTML = '<div class="col-12 text-center p-5"><div class="spinner-border text-info"></div><p class="neon-text mt-3">Scanning Matrix for ' + genre + '...</p></div>';
+    if (titleHeader) titleHeader.innerHTML = `Recommended <span class="neon-text">${genre}</span>`;
+    grid.innerHTML = '<div class="col-12 text-center p-5"><div class="spinner-border text-info"></div><p class="neon-text mt-3">Scanning Matrix...</p></div>';
 
-    // Advanced Filter: Matches even with hidden characters or case differences
+    // FILTER: Find movies where the genre column contains the selected genre
     const filtered = movieData.filter(m => {
-        const movieGenre = m[2] ? m[2].toLowerCase() : '';
-        return movieGenre.includes(genre.toLowerCase());
+        if (!m[2]) return false;
+        return m[2].toLowerCase().includes(genre.toLowerCase());
     }).sort(() => 0.5 - Math.random()).slice(0, 8);
 
-    await displayMovies(filtered);
-    updateWatchlistCount();
-}
-
-// --- SEARCH ENGINE ---
-async function searchMovies() {
-    const query = document.getElementById('searchInput').value.toLowerCase().trim();
-    if (!query) return;
-
-    const grid = document.getElementById('movieGrid');
-    const titleHeader = document.getElementById('recommendationTitle');
-    titleHeader.innerHTML = `Search: <span class="neon-text">${query}</span>`;
-    grid.innerHTML = '<div class="col-12 text-center p-5"><p class="neon-text">Querying Data...</p></div>';
-
-    const filtered = movieData.filter(m => m[1] && m[1].toLowerCase().includes(query)).slice(0, 8);
-    await displayMovies(filtered);
-}
-
-// --- CARD GENERATOR ---
-async function displayMovies(movies) {
-    const grid = document.getElementById('movieGrid');
-    let html = '';
-
-    if (!movies || movies.length === 0) {
-        grid.innerHTML = '<div class="col-12 text-center p-5"><p class="text-secondary">No movies found in this sector. Try another genre!</p></div>';
+    if (filtered.length === 0) {
+        grid.innerHTML = '<div class="col-12 text-center p-5"><p class="text-secondary">No matches found. Check your CSV column for ' + genre + '</p></div>';
         return;
     }
 
-    for (let m of movies) {
+    // RENDER CARDS
+    let html = '';
+    for (let m of filtered) {
         try {
-            const cleanTitle = m[1].split(' (')[0].trim();
+            // Clean title (removes the year "(1995)" for better API results)
+            const cleanTitle = m[1].replace(/\s\(\d{4}\)/, "").trim();
             const res = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(cleanTitle)}&apikey=${API_KEY}`);
             const data = await res.json();
-            const poster = (data.Response === "True" && data.Poster !== "N/A") ? data.Poster : 'https://via.placeholder.com/300x450?text=Matrix+No+Poster';
+            
+            const poster = (data.Response === "True" && data.Poster !== "N/A") ? data.Poster : 'https://via.placeholder.com/300x450?text=No+Poster';
             
             html += `
                 <div class="col-6 col-md-3 mb-4">
                     <div class="movie-card glass-panel p-2 h-100 d-flex flex-column" onclick="goToDetails('${m[1].replace(/'/g, "\\'")}', '${m[0]}')">
-                        <img src="${poster}" class="img-fluid rounded mb-2" style="height:320px; object-fit:cover;">
+                        <img src="${poster}" class="img-fluid rounded mb-2" style="height:300px; object-fit:cover;">
                         <h6 class="text-truncate fw-bold text-white px-1 m-0">${m[1]}</h6>
-                        <small class="text-info px-1 mb-2">View Details</small>
-                        <button class="btn btn-neon btn-sm w-100 mt-auto" onclick="event.stopPropagation(); addToWatchlist('${m[1].replace(/'/g, "\\'")}', '${poster}')">
-                            + WATCHLIST
-                        </button>
+                        <small class="text-info px-1 mb-2">${data.Year || 'Movie'}</small>
+                        <div class="mt-auto">
+                           <button class="btn btn-neon btn-sm w-100 mb-2">VIEW DETAILS</button>
+                           <button class="btn btn-outline-info btn-sm w-100" onclick="event.stopPropagation(); addToWatchlist('${m[1].replace(/'/g, "\\'")}', '${poster}')">+ WATCHLIST</button>
+                        </div>
                     </div>
                 </div>`;
         } catch (e) { console.error(e); }
@@ -100,24 +80,19 @@ async function displayMovies(movies) {
     grid.innerHTML = html;
 }
 
-function updateWatchlistCount() {
-    const countEl = document.getElementById('watchCount');
-    if (countEl) {
-        const list = JSON.parse(localStorage.getItem('myWatchlist') || '[]');
-        countEl.innerText = list.length;
-    }
-}
-
+// --- 3. WATCHLIST LOGIC ---
 function addToWatchlist(title, poster) {
     let list = JSON.parse(localStorage.getItem('myWatchlist') || '[]');
     if (!list.find(m => m.title === title)) {
         list.push({ title, poster });
         localStorage.setItem('myWatchlist', JSON.stringify(list));
-        updateWatchlistCount();
-        alert(`Added ${title} to Watchlist!`);
+        alert(`${title} added to Matrix Watchlist!`);
+    } else {
+        alert("Already in your Watchlist.");
     }
 }
 
+// --- 4. NAVIGATION ---
 function goToDetails(title, id) {
     localStorage.setItem('selectedMovie', title);
     localStorage.setItem('selectedId', id);
@@ -126,18 +101,11 @@ function goToDetails(title, id) {
 
 function enterSystem() {
     const user = document.getElementById('username').value;
-    if (user) {
+    if(user) { 
         localStorage.setItem('matrixUser', user);
-        window.location.href = 'dashboard.html';
+        window.location.href = 'dashboard.html'; 
     }
 }
 
-// --- AUTO LOAD ---
-if (window.location.pathname.includes('dashboard.html')) {
-    window.onload = async () => {
-        await initMatrix();
-        renderDashboard('Action'); // Default view
-    };
-} else {
-    window.onload = initMatrix;
-}
+// --- START SYSTEM ---
+window.onload = initMatrix;
