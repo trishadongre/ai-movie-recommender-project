@@ -1,7 +1,11 @@
-body { background: #0a0a0c; color: #fff; }
-.neon-text { color: #00f2ff; text-shadow: 0 0 10px #00f2ff; }
-.glass-panel { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
-.movie-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); transition: 0.3s; border-radius: 15px; }
-.movie-card:hover { border-color: #00f2ff; transform: translateY(-5px); }
-.btn-neon { background: #00f2ff; color: #000; font-weight: bold; border: none; }
-.poster-container img { height: 250px; object-fit: cover; width: 100%; }
+body { background: radial-gradient(circle at center, #161b22 0%, #0d1117 100%); color: #fff; min-height: 100vh; }
+.neon-text { color: #00f2ff; text-shadow: 0 0 15px #00f2ff; }
+.glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 25px; }
+.btn-neon { background: #00f2ff; color: #000; border: none; border-radius: 10px; transition: 0.3s; }
+.btn-neon:hover { background: #fff; box-shadow: 0 0 20px #00f2ff; }
+.genre-pill { background: #161b22; border: 1px solid #30363d; color: #8b949e; padding: 8px 25px; border-radius: 50px; transition: 0.3s; }
+.genre-pill.active { background: #00f2ff22; border-color: #00f2ff; color: #00f2ff; }
+.movie-card { position: relative; cursor: pointer; transition: 0.4s; }
+.movie-card:hover { transform: scale(1.05); }
+.movie-card img { border: 2px solid transparent; }
+.movie-card:hover img { border-color: #00f2ff; }

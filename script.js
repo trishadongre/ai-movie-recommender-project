@@ -1,67 +1,81 @@
-const OMDB_API_KEY = '8ffcf7f3';
-const CSV_URL = 'movies.csv';
+const API_KEY = '8ffcf7f3'; 
 
-// State Management
-let allMovies = [];
-let watchlist = JSON.parse(localStorage.getItem('watchlist')) || [];
+// State and Data
+let movieData = [];
+let ratingData = [];
+let linkData = [];
 
-async function init() {
-    const response = await fetch(CSV_URL);
-    const data = await response.text();
-    const rows = data.split('\n').slice(1);
-    allMovies = rows.map(row => {
-        const cols = row.split(',');
-        return { title: cols[1], genres: cols[2] };
-    }).filter(m => m.title);
-    
-    renderMovies(allMovies.slice(0, 8)); // Initial Trending
-}
-
-async function getPoster(title) {
-    const cleanTitle = title.split(' (')[0].trim();
+async function initMatrix() {
     try {
-        const res = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(cleanTitle)}&apikey=${OMDB_API_KEY}`);
-        const data = await res.json();
-        return data.Poster !== "N/A" ? data.Poster : 'https://via.placeholder.com/300x450';
-    } catch {
-        return 'https://via.placeholder.com/300x450';
-    }
+        const [mRes, rRes, lRes] = await Promise.all([
+            fetch('movies.csv').then(r => r.text()),
+            fetch('ratings.csv').then(r => r.text()),
+            fetch('links.csv').then(r => r.text())
+        ]);
+
+        movieData = parseCSV(mRes);
+        ratingData = parseCSV(rRes);
+        linkData = parseCSV(lRes);
+
+        renderDashboard(); 
+    } catch (e) { console.error("Matrix Sync Failed", e); }
 }
 
-async function renderMovies(movieArray) {
+function parseCSV(text) {
+    const lines = text.split('\n').filter(l => l.trim() !== '');
+    return lines.slice(1).map(line => line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
+}
+
+async function renderDashboard(genreFilter = 'Horror') {
     const grid = document.getElementById('movieGrid');
-    grid.innerHTML = '<div class="text-center w-100"><p class="neon-text">Analyzing Matrix...</p></div>';
+    const titleHeader = document.getElementById('recommendationTitle');
+    if (!grid) return;
+
+    titleHeader.innerHTML = `Recommended <span class="neon-text">${genreFilter}</span>`;
+    grid.innerHTML = '<div class="neon-text">Calculating User-Item Patterns...</div>';
+
+    // Logic: Filter by genre and sort by "Popularity" (number of ratings in ratings.csv)
+    let filtered = movieData.filter(m => m[2] && m[2].includes(genreFilter));
     
+    // Sort by popularity (how many times the movieId appears in ratings)
+    filtered.sort((a, b) => {
+        const countA = ratingData.filter(r => r[1] === a[0]).length;
+        const countB = ratingData.filter(r => r[1] === b[0]).length;
+        return countB - countA;
+    });
+
     let html = '';
-    for (let m of movieArray) {
-        const poster = await getPoster(m.title);
+    for (let m of filtered.slice(0, 8)) {
+        const res = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(m[1].split(' (')[0])}&apikey=${API_KEY}`);
+        const data = await res.json();
+        const poster = data.Poster !== "N/A" ? data.Poster : 'https://via.placeholder.com/300x450';
+        
         html += `
-            <div class="col-6 col-md-3">
-                <div class="movie-card text-center">
-                    <div class="poster-container"><img src="${poster}" class="poster-img"></div>
-                    <h6 class="fw-bold mt-2 text-truncate px-2">${m.title}</h6>
-                    <p class="small text-secondary">${m.genres.replace('|', ' • ')}</p>
-                    <button class="btn btn-neon btn-sm mb-3" onclick="viewDetails('${m.title}')">VIEW DETAILS</button>
+            <div class="col-md-3 mb-4">
+                <div class="movie-card" onclick="goToDetails('${m[1].replace(/'/g, "\\'")}', '${m[0]}')">
+                    <img src="${poster}" class="img-fluid rounded">
+                    <div class="card-overlay">
+                        <h6 class="fw-bold">${m[1]}</h6>
+                    </div>
                 </div>
             </div>`;
     }
     grid.innerHTML = html;
 }
 
-function filterByGenre(genre) {
-    const filtered = allMovies.filter(m => m.genres.includes(genre)).slice(0, 8);
-    renderMovies(filtered);
-}
-
-function searchMovie() {
-    const query = document.getElementById('searchInput').value.toLowerCase();
-    const filtered = allMovies.filter(m => m.title.toLowerCase().includes(query)).slice(0, 8);
-    renderMovies(filtered);
-}
-
-function viewDetails(title) {
-    localStorage.setItem('currentMovie', title);
+function goToDetails(title, id) {
+    localStorage.setItem('selectedMovie', title);
+    localStorage.setItem('selectedId', id);
     window.location.href = 'details.html';
 }
 
-init();
+function login() {
+    const user = document.getElementById('usernameInput').value;
+    if(user) {
+        localStorage.setItem('matrixUser', user);
+        window.location.href = 'index.html#dashboard'; // Or hide login div
+        document.getElementById('loginOverlay').style.display = 'none';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initMatrix);
