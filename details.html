@@ -1,46 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="container py-5">
-    <button onclick="window.history.back()" class="btn btn-outline-light mb-4">← BACK TO DASHBOARD</button>
-    
-    <div class="glass-panel p-5 mt-2">
-        <div id="detailsContent" class="row">
-            <!-- Loaded by JS -->
-        </div>
-    </div>
+    <button onclick="window.location.href='dashboard.html'" class="btn btn-outline-light mb-4">← BACK TO DASHBOARD</button>
+    <div class="glass-panel p-5"><div id="detailsContent" class="row"></div></div>
 
+    <script src="script.js"></script>
     <script>
         async function loadDetails() {
             const title = localStorage.getItem('selectedMovie');
             const movieId = localStorage.getItem('selectedId');
-            const API_KEY = 'YOUR_OMDB_KEY';
             
-            // Get links data for IMDb button
             const lRes = await fetch('links.csv');
             const lText = await lRes.text();
-            const links = lText.split('\n').map(line => line.split(','));
-            const movieLink = links.find(l => l[0] === movieId);
-            const imdbId = movieLink ? movieLink[1] : '';
+            const imdbId = lText.split('\n').find(l => l.startsWith(movieId))?.split(',')[1];
 
             const res = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(title.split(' (')[0])}&plot=full&apikey=${API_KEY}`);
             const m = await res.json();
 
             document.getElementById('detailsContent').innerHTML = `
-                <div class="col-md-5"><img src="${m.Poster}" class="img-fluid rounded shadow-lg"></div>
+                <div class="col-md-5"><img src="${m.Poster}" class="img-fluid rounded border-info border"></div>
                 <div class="col-md-7">
-                    <h1 class="neon-text display-3 fw-bold">${m.Title}</h1>
+                    <h1 class="neon-text fw-bold">${m.Title}</h1>
                     <p class="text-secondary">${m.Year} • ${m.Genre} • ${m.Runtime}</p>
-                    <div class="d-flex gap-2 my-3">
-                        <span class="badge bg-warning text-dark p-2">IMDb ${m.imdbRating}</span>
-                        <span class="badge border border-info text-info p-2">${m.Rated}</span>
-                    </div>
-                    <h5 class="neon-text mt-4">PLOT SUMMARY</h5>
-                    <p class="lead">${m.Plot}</p>
-                    <a href="https://www.imdb.com/title/tt${imdbId}" target="_blank" class="btn btn-neon mt-3">VIEW ON IMDB</a>
+                    <span class="badge bg-warning text-dark mb-3">IMDb ${m.imdbRating}</span>
+                    <h5 class="neon-text">PLOT SUMMARY</h5>
+                    <p>${m.Plot}</p>
+                    <button class="btn btn-neon" onclick="alert('Added!')">ADD TO WATCHLIST</button>
+                    <a href="https://www.imdb.com/title/tt${imdbId}" target="_blank" class="btn btn-outline-info ms-2">IMDb PAGE</a>
                 </div>`;
         }
         loadDetails();
