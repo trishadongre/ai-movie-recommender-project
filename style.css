@@ -1,11 +1,150 @@
-body { background: radial-gradient(circle at center, #161b22 0%, #0d1117 100%); color: #fff; min-height: 100vh; }
-.neon-text { color: #00f2ff; text-shadow: 0 0 15px #00f2ff; }
-.glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 25px; }
-.btn-neon { background: #00f2ff; color: #000; border: none; border-radius: 10px; transition: 0.3s; }
-.btn-neon:hover { background: #fff; box-shadow: 0 0 20px #00f2ff; }
-.genre-pill { background: #161b22; border: 1px solid #30363d; color: #8b949e; padding: 8px 25px; border-radius: 50px; transition: 0.3s; }
-.genre-pill.active { background: #00f2ff22; border-color: #00f2ff; color: #00f2ff; }
-.movie-card { position: relative; cursor: pointer; transition: 0.4s; }
-.movie-card:hover { transform: scale(1.05); }
-.movie-card img { border: 2px solid transparent; }
-.movie-card:hover img { border-color: #00f2ff; }
+/* --- Core Matrix Theme --- */
+:root {
+    --bg-dark: #0a0c10;
+    --bg-gradient: radial-gradient(circle at center, #161b22 0%, #080a0d 100%);
+    --neon-blue: #00f2ff;
+    --glass-white: rgba(255, 255, 255, 0.05);
+    --border-glass: rgba(255, 255, 255, 0.1);
+}
+
+body {
+    background: var(--bg-gradient);
+    color: #ffffff;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    margin: 0;
+}
+
+/* --- Typography & Glows --- */
+.neon-text {
+    color: var(--neon-blue);
+    text-shadow: 0 0 10px rgba(0, 242, 255, 0.6), 0 0 20px rgba(0, 242, 255, 0.3);
+}
+
+h1, h2, h3 {
+    letter-spacing: 1px;
+}
+
+/* --- Glassmorphism Panels --- */
+.glass-panel {
+    background: var(--glass-white);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-glass);
+    border-radius: 20px;
+}
+
+/* --- Buttons --- */
+.btn-neon {
+    background: var(--neon-blue);
+    color: #000;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    transition: all 0.3s ease;
+}
+
+.btn-neon:hover {
+    background: #ffffff;
+    box-shadow: 0 0 20px var(--neon-blue);
+    transform: translateY(-2px);
+    color: #000;
+}
+
+.btn-outline-info {
+    border-color: var(--neon-blue);
+    color: var(--neon-blue);
+}
+
+.btn-outline-info:hover {
+    background: var(--neon-blue);
+    color: #000;
+}
+
+/* --- Genre Bar & Pills --- */
+.genre-pill {
+    background: #161b22;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    padding: 8px 24px;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.genre-pill:hover, .genre-pill.active {
+    border-color: var(--neon-blue);
+    color: var(--neon-blue);
+    background: rgba(0, 242, 255, 0.1);
+    box-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
+}
+
+/* --- Movie Cards --- */
+.movie-card {
+    cursor: pointer;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-glass);
+    overflow: hidden;
+}
+
+.movie-card:hover {
+    transform: scale(1.05);
+    border-color: var(--neon-blue);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.movie-card img {
+    transition: opacity 0.3s ease;
+}
+
+.movie-card:hover img {
+    opacity: 0.8;
+}
+
+/* --- Search Bar --- */
+#searchInput {
+    background: #0d1117;
+    color: white;
+    border: 1px solid #30363d;
+    border-radius: 12px 0 0 12px;
+}
+
+#searchInput:focus {
+    border-color: var(--neon-blue);
+    box-shadow: none;
+}
+
+.input-group .btn-info {
+    background: var(--neon-blue);
+    border: none;
+    border-radius: 0 12px 12px 0;
+    padding: 0 20px;
+}
+
+/* --- Login Box Specific --- */
+.login-box {
+    border: 1px solid rgba(0, 242, 255, 0.2);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+}
+
+/* --- Watchlist Grid --- */
+#watchlistGrid .movie-card {
+    cursor: default;
+}
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--neon-blue);
+}
