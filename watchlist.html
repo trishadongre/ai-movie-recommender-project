@@ -1,32 +1,72 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineMatrix | My Watchlist</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="container py-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="neon-text fw-bold">MY <span class="text-white">WATCHLIST</span></h1>
-        <button onclick="window.location.href='dashboard.html'" class="btn btn-outline-light">← BACK</button>
+<body class="container py-4">
+    <header class="glass-panel d-flex justify-content-between align-items-center p-3 mb-5">
+        <h2 class="neon-text fw-bold m-0" style="cursor:pointer" onclick="window.location.href='dashboard.html'">CINEMATRIX</h2>
+        <button class="btn btn-outline-info rounded-pill px-4" onclick="window.location.href='dashboard.html'">← BACK TO FEED</button>
+    </header>
+
+    <div class="text-center mb-5">
+        <h1 class="fw-bold display-4">My <span class="neon-text">Watchlist</span></h1>
+        <p class="text-secondary">Your personal transmission archive.</p>
     </div>
 
-    <div id="watchlistGrid" class="row"></div>
+    <div id="watchlistGrid" class="row">
+        <!-- Saved movies will appear here -->
+    </div>
 
+    <div id="emptyMessage" class="text-center p-5 d-none">
+        <p class="text-secondary">Your watchlist is empty. Go find some data!</p>
+        <button class="btn btn-neon px-5" onclick="window.location.href='dashboard.html'">EXPLORE MOVIES</button>
+    </div>
+
+    <script src="script.js"></script>
     <script>
-        const list = JSON.parse(localStorage.getItem('myWatchlist') || '[]');
-        const grid = document.getElementById('watchlistGrid');
-        
-        if(list.length === 0) {
-            grid.innerHTML = '<div class="col-12 text-center p-5"><p class="text-secondary">Your watchlist is empty.</p></div>';
-        } else {
-            grid.innerHTML = list.map(m => `
-                <div class="col-6 col-md-3 mb-4">
-                    <div class="movie-card glass-panel p-2">
-                        <img src="${m.poster}" class="img-fluid rounded mb-2">
-                        <h6 class="text-truncate px-1">${m.title}</h6>
-                    </div>
-                </div>
-            `).join('');
+        // Run this specifically for the watchlist page
+        window.onload = function() {
+            displayWatchlist();
+        };
+
+        function displayWatchlist() {
+            const grid = document.getElementById('watchlistGrid');
+            const emptyMsg = document.getElementById('emptyMessage');
+            const list = JSON.parse(localStorage.getItem('myWatchlist') || '[]');
+
+            if (list.length === 0) {
+                emptyMsg.classList.remove('d-none');
+                grid.innerHTML = '';
+                return;
+            }
+
+            emptyMsg.classList.add('d-none');
+            let html = '';
+            list.forEach((movie, index) => {
+                html += `
+                    <div class="col-6 col-md-3 mb-4">
+                        <div class="movie-card glass-panel p-2 h-100 d-flex flex-column">
+                            <img src="${movie.poster}" class="img-fluid rounded mb-2" style="height:300px; object-fit:cover;">
+                            <h6 class="text-truncate fw-bold text-white px-1 m-0">${movie.title}</h6>
+                            <div class="mt-auto pt-2">
+                                <button class="btn btn-outline-danger btn-sm w-100" onclick="removeFromWatchlist(${index})">REMOVE</button>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+            grid.innerHTML = html;
+        }
+
+        function removeFromWatchlist(index) {
+            let list = JSON.parse(localStorage.getItem('myWatchlist') || '[]');
+            list.splice(index, 1);
+            localStorage.setItem('myWatchlist', JSON.stringify(list));
+            displayWatchlist(); // Refresh the UI
         }
     </script>
 </body>

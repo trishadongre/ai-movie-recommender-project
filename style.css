@@ -2,7 +2,16 @@
     --bg-gradient: radial-gradient(circle at center, #161b22 0%, #080a0d 100%);
     --neon: #00f2ff;
 }
+.btn-outline-danger {
+    border-color: #ff4b2b;
+    color: #ff4b2b;
+}
 
+.btn-outline-danger:hover {
+    background: #ff4b2b;
+    color: white;
+    box-shadow: 0 0 10px #ff4b2b;
+}
 body {
     background: var(--bg-gradient);
     color: white;
