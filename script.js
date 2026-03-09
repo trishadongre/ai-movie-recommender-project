@@ -1,52 +1,45 @@
 const API_KEY = '8ffcf7f3';
 
-// Memory-Safe Data Loading
-async function getMatrixData(fileName, limit = false) {
+// 1. FAST LOGIN - No data loading here to prevent lag
+function enterSystem() {
+    const user = document.getElementById('username').value;
+    if(user) {
+        localStorage.setItem('matrixUser', user);
+        window.location.href = 'dashboard.html';
+    }
+}
+
+// 2. SMART DATA LOADER
+async function fetchCSV(fileName, isLarge = false) {
     try {
         const response = await fetch(fileName);
-        if (!response.ok) return [];
-        
-        if (limit) {
-            // Read only first chunk of large files (ratings.csv) to prevent crashing
+        if (isLarge) {
+            // Only take a tiny slice of the large file to keep it fast
             const reader = response.body.getReader();
             const { value } = await reader.read();
-            const text = new TextDecoder().decode(value.slice(0, 1000000)); 
-            return parseCSV(text);
+            return new TextDecoder().decode(value.slice(0, 100000)).split('\n');
         }
         const text = await response.text();
-        return parseCSV(text);
+        return text.split('\n');
     } catch (e) { return []; }
 }
 
-function parseCSV(text) {
-    return text.split('\n')
-               .filter(row => row.trim() !== '')
-               .map(row => row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
-}
-
-// DASHBOARD LOGIC
+// 3. DASHBOARD RENDERER
 async function renderDashboard(genre = 'Horror') {
     const grid = document.getElementById('movieGrid');
-    const titleHeader = document.getElementById('recommendationTitle');
     if (!grid) return;
 
-    titleHeader.innerHTML = `Recommended <span class="neon-text">${genre}</span>`;
-    grid.innerHTML = '<div class="neon-text p-5">Analyzing Matrix Patterns...</div>';
+    grid.innerHTML = '<div class="neon-text p-5">Initializing Matrix...</div>';
 
-    const movies = await getMatrixData('movies.csv');
-    const ratings = await getMatrixData('ratings.csv', true);
-
-    let filtered = movies.slice(1).filter(m => m[2] && m[2].includes(genre));
+    // Load movies (Small file)
+    const movieRows = await fetchCSV('movies.csv');
     
-    // Simple Collaborative Logic: Sort by frequency in ratings
-    filtered.sort((a, b) => {
-        const countA = ratings.filter(r => r[1] === a[0]).length;
-        const countB = ratings.filter(r => r[1] === b[0]).length;
-        return countB - countA;
-    });
+    // Process movies quickly
+    let movies = movieRows.slice(1).map(row => row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
+    let filtered = movies.filter(m => m[2] && m[2].includes(genre)).slice(0, 8);
 
     let html = '';
-    for (let m of filtered.slice(0, 8)) {
+    for (let m of filtered) {
         const res = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(m[1].split(' (')[0])}&apikey=${API_KEY}`);
         const data = await res.json();
         const poster = data.Poster !== "N/A" ? data.Poster : 'https://via.placeholder.com/300x450';
@@ -66,13 +59,4 @@ function goToDetails(title, id) {
     localStorage.setItem('selectedMovie', title);
     localStorage.setItem('selectedId', id);
     window.location.href = 'details.html';
-}
-
-// LOGIN LOGIC
-function enterSystem() {
-    const user = document.getElementById('username').value;
-    if(user) {
-        localStorage.setItem('matrixUser', user);
-        window.location.href = 'dashboard.html';
-    }
 }

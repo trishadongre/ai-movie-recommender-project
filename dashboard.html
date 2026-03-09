@@ -8,24 +8,22 @@
     <header class="d-flex justify-content-between align-items-center glass-panel p-3 mb-4">
         <h2 class="neon-text fw-bold m-0">CINEMATRIX</h2>
         <div class="d-flex gap-2">
-            <a href="watchlist.html" class="btn btn-info btn-sm rounded-pill">WATCHLIST</a>
-            <a href="index.html" class="btn btn-outline-danger btn-sm rounded-pill">LOGOUT</a>
+            <button class="btn btn-outline-danger btn-sm rounded-pill" onclick="window.location.href='index.html'">LOGOUT</button>
         </div>
     </header>
 
-    <div class="d-flex justify-content-center gap-2 mb-5">
+    <div class="genre-bar d-flex justify-content-center gap-2 mb-5">
         <button onclick="renderDashboard('Action')" class="genre-pill">Action</button>
+        <button onclick="renderDashboard('Comedy')" class="genre-pill">Comedy</button>
         <button onclick="renderDashboard('Horror')" class="genre-pill">Horror</button>
-        <button onclick="renderDashboard('Sci-Fi')" class="genre-pill">Sci-Fi</button>
-    </div>
-
-    <div class="text-center mb-5">
-        <h1 id="recommendationTitle" class="fw-bold display-4">Recommended <span class="neon-text">Horror</span></h1>
     </div>
 
     <div id="movieGrid" class="row"></div>
 
     <script src="script.js"></script>
-    <script>document.addEventListener('DOMContentLoaded', () => renderDashboard('Horror'));</script>
+    <script>
+        // Only load data once we are safely on the dashboard
+        window.onload = () => renderDashboard('Horror');
+    </script>
 </body>
 </html>
