@@ -1,66 +1,73 @@
-const API_KEY = '8ffcf7f3'; // <--- PUT YOUR KEY HERE
+const API_KEY = '8ffcf7f3'; 
 
-let movieData = []; // This stores the CSV data so we don't have to reload it
+let movieData = []; 
 
-// --- 1. INITIALIZE DATA (Loads once when page opens) ---
+// --- 1. INITIALIZE SYSTEM ---
 async function initMatrix() {
     try {
         const response = await fetch('movies.csv');
         const text = await response.text();
-        // Splits by line and cleans up hidden carriage returns (\r)
         const rows = text.split(/\r?\n/).filter(row => row.trim() !== "");
         
-        // Parse CSV columns correctly (handles titles with commas like "Toy Story, The")
         movieData = rows.slice(1).map(row => {
             return row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => cell.replace(/"/g, '').trim());
         });
 
-        console.log("Matrix Data Loaded:", movieData.length, "movies");
+        console.log("Matrix Online. Movies:", movieData.length);
         
-        // If we are on the dashboard, show Action movies by default
+        // Update count on page load
+        updateWatchlistCount();
+
+        // Start with Action movies if on dashboard
         if (document.getElementById('movieGrid')) {
             renderDashboard('Action');
         }
     } catch (e) {
-        console.error("Matrix Sync Error:", e);
+        console.error("Connection Error:", e);
     }
 }
 
-// --- 2. DASHBOARD RENDERER (Uses the cached movieData) ---
+// --- 2. WATCHLIST COUNTER ---
+function updateWatchlistCount() {
+    const countEl = document.getElementById('watchCount');
+    if (countEl) {
+        const list = JSON.parse(localStorage.getItem('myWatchlist') || '[]');
+        countEl.innerText = list.length;
+    }
+}
+
+// --- 3. DASHBOARD RENDERER ---
 async function renderDashboard(genre = 'Action') {
     const grid = document.getElementById('movieGrid');
     const titleHeader = document.getElementById('recommendationTitle');
     if (!grid) return;
 
-    // Update Pill UI (Active state)
+    // UI: Active Button State
     document.querySelectorAll('.genre-pill').forEach(btn => {
         btn.classList.remove('active');
         if (btn.innerText.trim().toLowerCase() === genre.toLowerCase()) btn.classList.add('active');
     });
 
     if (titleHeader) titleHeader.innerHTML = `Recommended <span class="neon-text">${genre}</span>`;
-    grid.innerHTML = '<div class="col-12 text-center p-5"><div class="spinner-border text-info"></div><p class="neon-text mt-3">Scanning Matrix...</p></div>';
+    grid.innerHTML = '<div class="col-12 text-center p-5"><div class="spinner-border text-info"></div><p class="neon-text mt-3">Accessing Database...</p></div>';
 
-    // FILTER: Find movies where the genre column contains the selected genre
+    // Filter Logic
     const filtered = movieData.filter(m => {
         if (!m[2]) return false;
         return m[2].toLowerCase().includes(genre.toLowerCase());
     }).sort(() => 0.5 - Math.random()).slice(0, 8);
 
     if (filtered.length === 0) {
-        grid.innerHTML = '<div class="col-12 text-center p-5"><p class="text-secondary">No matches found. Check your CSV column for ' + genre + '</p></div>';
+        grid.innerHTML = '<div class="col-12 text-center p-5"><p class="text-secondary">No matches found in this sector.</p></div>';
         return;
     }
 
-    // RENDER CARDS
     let html = '';
     for (let m of filtered) {
         try {
-            // Clean title (removes the year "(1995)" for better API results)
             const cleanTitle = m[1].replace(/\s\(\d{4}\)/, "").trim();
             const res = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(cleanTitle)}&apikey=${API_KEY}`);
             const data = await res.json();
-            
             const poster = (data.Response === "True" && data.Poster !== "N/A") ? data.Poster : 'https://via.placeholder.com/300x450?text=No+Poster';
             
             html += `
@@ -71,7 +78,9 @@ async function renderDashboard(genre = 'Action') {
                         <small class="text-info px-1 mb-2">${data.Year || 'Movie'}</small>
                         <div class="mt-auto">
                            <button class="btn btn-neon btn-sm w-100 mb-2">VIEW DETAILS</button>
-                           <button class="btn btn-outline-info btn-sm w-100" onclick="event.stopPropagation(); addToWatchlist('${m[1].replace(/'/g, "\\'")}', '${poster}')">+ WATCHLIST</button>
+                           <button class="btn btn-outline-info btn-sm w-100" onclick="event.stopPropagation(); addToWatchlist('${m[1].replace(/'/g, "\\'")}', '${poster}')">
+                               + WATCHLIST
+                           </button>
                         </div>
                     </div>
                 </div>`;
@@ -80,19 +89,20 @@ async function renderDashboard(genre = 'Action') {
     grid.innerHTML = html;
 }
 
-// --- 3. WATCHLIST LOGIC ---
+// --- 4. ADD TO WATCHLIST ---
 function addToWatchlist(title, poster) {
     let list = JSON.parse(localStorage.getItem('myWatchlist') || '[]');
     if (!list.find(m => m.title === title)) {
         list.push({ title, poster });
         localStorage.setItem('myWatchlist', JSON.stringify(list));
-        alert(`${title} added to Matrix Watchlist!`);
+        updateWatchlistCount(); // LIVE UPDATE
+        alert(`${title} added to Watchlist!`);
     } else {
         alert("Already in your Watchlist.");
     }
 }
 
-// --- 4. NAVIGATION ---
+// --- 5. NAVIGATION ---
 function goToDetails(title, id) {
     localStorage.setItem('selectedMovie', title);
     localStorage.setItem('selectedId', id);
@@ -107,5 +117,5 @@ function enterSystem() {
     }
 }
 
-// --- START SYSTEM ---
+// Start everything
 window.onload = initMatrix;
