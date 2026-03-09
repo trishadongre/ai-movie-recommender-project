@@ -1,88 +1,88 @@
-// --- CONFIGURATION ---
-const API_KEY = '8ffcf7f3'; // Replace with your actual OMDb API Key
+const API_KEY = '8ffcf7f3'; 
 
-// --- DATA INITIALIZATION ---
 let movieData = [];
 let linkData = [];
 
-// --- CORE MATRIX ENGINE ---
+// --- ROBUST DATA ENGINE ---
 async function initMatrix() {
     try {
-        // Load movies and links (Small files)
         const [mRes, lRes] = await Promise.all([
             fetch('movies.csv').then(r => r.text()),
             fetch('links.csv').then(r => r.text())
         ]);
 
-        movieData = parseCSV(mRes).slice(1); // Remove header
-        linkData = parseCSV(lRes);
+        movieData = parseCleanCSV(mRes).slice(1); // Remove header
+        linkData = parseCleanCSV(lRes);
         
-        console.log("Matrix initialized.");
+        console.log("Matrix Online. Movies Loaded:", movieData.length);
     } catch (e) {
         console.error("Matrix Sync Failed:", e);
     }
 }
 
-function parseCSV(text) {
+// Cleans data of hidden characters (\r, extra spaces, etc.)
+function parseCleanCSV(text) {
     if (!text) return [];
-    return text.split('\n')
+    return text.split(/\r?\n/) // Handles both Windows and Linux line breaks
                .filter(row => row.trim() !== '')
-               .map(row => row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
+               .map(row => row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => cell.replace(/"/g, '').trim()));
 }
 
 // --- DASHBOARD RENDERER ---
-async function renderDashboard(genre = 'Horror') {
+async function renderDashboard(genre = 'Action') {
     const grid = document.getElementById('movieGrid');
     const titleHeader = document.getElementById('recommendationTitle');
     if (!grid) return;
 
-    // Update Active Pill UI
+    // Update Pill UI
     document.querySelectorAll('.genre-pill').forEach(btn => {
         btn.classList.remove('active');
         if (btn.innerText.toLowerCase() === genre.toLowerCase()) btn.classList.add('active');
     });
 
     titleHeader.innerHTML = `Recommended <span class="neon-text">${genre}</span>`;
-    grid.innerHTML = '<div class="col-12 text-center p-5"><div class="spinner-border text-info"></div><p class="neon-text mt-3">Syncing Matrix...</p></div>';
+    grid.innerHTML = '<div class="col-12 text-center p-5"><div class="spinner-border text-info"></div><p class="neon-text mt-3">Scanning Matrix for ' + genre + '...</p></div>';
 
-    // Filter by genre
-    const filtered = movieData.filter(m => m[2] && m[2].toLowerCase().includes(genre.toLowerCase())).slice(0, 8);
+    // Advanced Filter: Matches even with hidden characters or case differences
+    const filtered = movieData.filter(m => {
+        const movieGenre = m[2] ? m[2].toLowerCase() : '';
+        return movieGenre.includes(genre.toLowerCase());
+    }).sort(() => 0.5 - Math.random()).slice(0, 8);
+
     await displayMovies(filtered);
     updateWatchlistCount();
 }
 
-// --- SEARCH FUNCTION ---
+// --- SEARCH ENGINE ---
 async function searchMovies() {
-    const query = document.getElementById('searchInput').value.toLowerCase();
+    const query = document.getElementById('searchInput').value.toLowerCase().trim();
     if (!query) return;
 
     const grid = document.getElementById('movieGrid');
     const titleHeader = document.getElementById('recommendationTitle');
-    
     titleHeader.innerHTML = `Search: <span class="neon-text">${query}</span>`;
-    grid.innerHTML = '<div class="col-12 text-center p-5"><p class="neon-text">Querying Matrix...</p></div>';
+    grid.innerHTML = '<div class="col-12 text-center p-5"><p class="neon-text">Querying Data...</p></div>';
 
     const filtered = movieData.filter(m => m[1] && m[1].toLowerCase().includes(query)).slice(0, 8);
     await displayMovies(filtered);
 }
 
-// --- DISPLAY LOGIC ---
+// --- CARD GENERATOR ---
 async function displayMovies(movies) {
     const grid = document.getElementById('movieGrid');
     let html = '';
 
-    if (movies.length === 0) {
-        grid.innerHTML = '<div class="col-12 text-center p-5"><p class="text-secondary">No matches found in this sector.</p></div>';
+    if (!movies || movies.length === 0) {
+        grid.innerHTML = '<div class="col-12 text-center p-5"><p class="text-secondary">No movies found in this sector. Try another genre!</p></div>';
         return;
     }
 
     for (let m of movies) {
         try {
-            // Clean title for API (remove year)
             const cleanTitle = m[1].split(' (')[0].trim();
             const res = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(cleanTitle)}&apikey=${API_KEY}`);
             const data = await res.json();
-            const poster = (data.Response === "True" && data.Poster !== "N/A") ? data.Poster : 'https://via.placeholder.com/300x450?text=No+Poster';
+            const poster = (data.Response === "True" && data.Poster !== "N/A") ? data.Poster : 'https://via.placeholder.com/300x450?text=Matrix+No+Poster';
             
             html += `
                 <div class="col-6 col-md-3 mb-4">
@@ -100,19 +100,6 @@ async function displayMovies(movies) {
     grid.innerHTML = html;
 }
 
-// --- WATCHLIST SYSTEM ---
-function addToWatchlist(title, poster) {
-    let list = JSON.parse(localStorage.getItem('myWatchlist') || '[]');
-    if (!list.find(m => m.title === title)) {
-        list.push({ title, poster });
-        localStorage.setItem('myWatchlist', JSON.stringify(list));
-        updateWatchlistCount();
-        alert(`${title} added to Matrix!`);
-    } else {
-        alert("Already in your Matrix.");
-    }
-}
-
 function updateWatchlistCount() {
     const countEl = document.getElementById('watchCount');
     if (countEl) {
@@ -121,7 +108,16 @@ function updateWatchlistCount() {
     }
 }
 
-// --- NAVIGATION ---
+function addToWatchlist(title, poster) {
+    let list = JSON.parse(localStorage.getItem('myWatchlist') || '[]');
+    if (!list.find(m => m.title === title)) {
+        list.push({ title, poster });
+        localStorage.setItem('myWatchlist', JSON.stringify(list));
+        updateWatchlistCount();
+        alert(`Added ${title} to Watchlist!`);
+    }
+}
+
 function goToDetails(title, id) {
     localStorage.setItem('selectedMovie', title);
     localStorage.setItem('selectedId', id);
@@ -136,11 +132,11 @@ function enterSystem() {
     }
 }
 
-// --- INITIALIZE ON LOAD ---
+// --- AUTO LOAD ---
 if (window.location.pathname.includes('dashboard.html')) {
     window.onload = async () => {
         await initMatrix();
-        renderDashboard('Horror');
+        renderDashboard('Action'); // Default view
     };
 } else {
     window.onload = initMatrix;
