@@ -1,0 +1,7 @@
+body { background: #0a0a0c; color: #fff; }
+.neon-text { color: #00f2ff; text-shadow: 0 0 10px #00f2ff; }
+.glass-panel { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
+.movie-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); transition: 0.3s; border-radius: 15px; }
+.movie-card:hover { border-color: #00f2ff; transform: translateY(-5px); }
+.btn-neon { background: #00f2ff; color: #000; font-weight: bold; border: none; }
+.poster-container img { height: 250px; object-fit: cover; width: 100%; }
